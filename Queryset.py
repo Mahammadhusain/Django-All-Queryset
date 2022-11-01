@@ -46,6 +46,9 @@ stu = StudentModel.objects.values('name').distinct()
 # fetch all unique records
 stu = StudentModel.objects.all().distinct()
 
+# exclude specific record and show all remain
+all_orders = Orders.objects.all().exclude(id=10)
+
 # ----------- values -----------
 stu = StudentModel.objects.values('name','roll')
 # get queryset with values of (name,roll)
