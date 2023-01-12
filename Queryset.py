@@ -11,6 +11,15 @@
 # ----------- annotate -----------
 # here we count how many articles (published = True) for all categories
 # from django.db.models import Count,Min,Max,Avg,Sum,StdDev,Variance  # we can do this all operation with annotate
+# EXAMPLE:-
+
+final_output = DemoModel.objects.values('uid').annotate(
+    completed = Count('status', filter=Q(status="Completed")),
+    new=Count('status', filter=Q(status="New")),
+    in_progress=Count('status', filter=Q(status="InProgress"))).order_by('uid')
+
+# OUTPUT:-
+# <QuerySet [{'uid': 1, 'completed': 0, 'hold': 3, 'in_progress': 1}, {'uid': 2, 'completed': 0, 'hold': 0, 'in_progress': 2}, {'uid': 3, 'completed': 1, 'hold': 0, 'in_progress': 0}]>
 
 
 
@@ -407,4 +416,5 @@ Question.objects.prefetch_related(Prefetch('choice_set')).all()
 from django.db.models import FilteredRelation, Q
 result_1 = Restaurant.objects.annotate(pizzas_vegetarian=FilteredRelation('pizzas', 
 condition=Q(pizzas__vegetarian=True), ), ).filter(pizzas_vegetarian__name__icontains='mozzarella')
+
 
