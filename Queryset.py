@@ -40,9 +40,9 @@ def get_categories():
     return Category.objects.all().annotate(Count('article', filters))
 
 # ----------- order_by -----------
-stu = stu = StudentModel.objects.all().order_by('date') # accending order (10-04-22 to 20-04-22)
-stu = stu = StudentModel.objects.all().order_by('roll') # accending order (1-100)
-stu = stu = StudentModel.objects.all().order_by('name') # accending order (A-Z)
+stu = StudentModel.objects.all().order_by('date') # accending order (10-04-22 to 20-04-22)
+stu = StudentModel.objects.all().order_by('roll') # accending order (1-100)
+stu = StudentModel.objects.all().order_by('name') # accending order (A-Z)
 
 # ----------- reverse -----------
 # use for do reverse order queryset
