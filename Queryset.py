@@ -85,6 +85,7 @@ Entry.objects.filter(headline__contains='Lennon').dates('created_at', 'day') # a
 
 # ----------- none -----------
 # Create an empty QuerySet
+stu = StudentModel.objects.none()
 
 # ----------- all() -----------
 # fetch all record from table
