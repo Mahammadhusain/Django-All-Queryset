@@ -9,21 +9,6 @@
 # stu = StudentModel.objects.all().exclude(name='Raj)
 
 # ----------- annotate -----------
-
-class Publisher(models.Model):
-    name = models.CharField(max_length=100)
-
-class Book(models.Model):
-    publisher = models.ForeignKey(Publisher, on_delete=models.CASCADE)
-
-
-
-book = Book.objects.select_related('publisher').get(id=1)  # Using ForeignKey
-book.publisher.name
-
-publisher = Publisher.objects.prefetch_related('book_set').get(id=1) # Using Reverse ForeignKey
-books = publisher.book_set.all()
-
 # here we count how many articles (published = True) for all categories
 # from django.db.models import Count,Min,Max,Avg,Sum,StdDev,Variance  # we can do this all operation with annotate
 # EXAMPLE:-
@@ -432,5 +417,17 @@ Question.objects.prefetch_related(Prefetch('choice_set')).all()
 from django.db.models import FilteredRelation, Q
 result_1 = Restaurant.objects.annotate(pizzas_vegetarian=FilteredRelation('pizzas', 
 condition=Q(pizzas__vegetarian=True), ), ).filter(pizzas_vegetarian__name__icontains='mozzarella')
+# -------------- Second Examle -------------------
+class Publisher(models.Model):
+    name = models.CharField(max_length=100)
+
+class Book(models.Model):
+    publisher = models.ForeignKey(Publisher, on_delete=models.CASCADE)
 
 
+
+book = Book.objects.select_related('publisher').get(id=1)  # Using ForeignKey
+book.publisher.name
+
+publisher = Publisher.objects.prefetch_related('book_set').get(id=1) # Using Reverse ForeignKey
+books = publisher.book_set.all()
