@@ -323,8 +323,8 @@ o_data = Order.objects.filter(psize='S') # required string exact match as well a
 # ---------------- contains & icontains -----------------------
 # The BINARY is the exact case (contains)
 # the'i' in'icontains' means that case is ignored (icontains)
-# o_data = Order.objects.filter(psize__contains='S') (case-sensitive required)
-# o_data = Order.objects.filter(psize__icontains='s') (case-sensitive not required)
+o_data = Order.objects.filter(psize__contains='S') # (case-sensitive required)
+o_data = Order.objects.filter(psize__icontains='s') # (case-sensitive not required)
 
 # ---------------- in -----------------------
 stu = StudentModel.objects.filter(pk__in=[1, 2, 3]) # retun all object with matchin ids of list
