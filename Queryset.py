@@ -41,8 +41,11 @@ def get_categories():
 
 # ----------- order_by -----------
 stu = StudentModel.objects.all().order_by('date') # accending order (10-04-22 to 20-04-22)
+stu = StudentModel.objects.all().order_by('-date') # descending order (10-04-22 to 20-04-22)
 stu = StudentModel.objects.all().order_by('roll') # accending order (1-100)
+stu = StudentModel.objects.all().order_by('-roll') # descending order (1-100)
 stu = StudentModel.objects.all().order_by('name') # accending order (A-Z)
+stu = StudentModel.objects.all().order_by('-name') # descending order (A-Z)
 
 # ----------- reverse -----------
 # use for do reverse order queryset
@@ -117,7 +120,9 @@ q = q1.union(q2,q3) # more than 2 queryset union
 >>> print q6
 <QuerySet [<MyModel: A>, <MyModel: B>, <MyModel: C>, <MyModel: D>, <MyModel: E>, <MyModel: A>, <MyModel: B>, <MyModel: C>, <MyModel: D>]>
 
-
+students = Student.objects.all().values_list("name", "gender")
+authors = Authors.objects.all().values_list("name", "gender")
+all = student.union(authors)
 
 # ----------- intersection() -----------
 q= q1.intersection(qs2) # return same record in q1 & q2  
@@ -177,12 +182,36 @@ from django.db import models
 class Author(models.Model):
    first_name = models.CharField(max_length=512)
    last_name = models.CharField(max_length=512)
+
 class Book(models.Model):
    title = models.CharField(max_length=512)
    author = models.ForeignKey(Author, on_delete=models.CASCADE)
 
 books = Author.objects.prefetch_related('author') # reverse lookup for ForeignKey
 <QuerySet [<Book: Book object (1)>, <Book: Book object (2)>, <Book: Book object (3)>, <Book: Book object (4)>]>
+
+# ----------- transaction.atomic() -----------
+# The transaction.atomic function allows you to wrap a code block in a single transaction. 
+# If everything in the block executes successfully, the changes are committed to the database. 
+# If an error occurs anywhere in the block, all changes are rolled back, and nothing is saved to the database.
+from django.db import transaction
+from django.core.exceptions import ValidationError
+
+def transfer_funds(sender, receiver, amount):
+    try:
+        with transaction.atomic():
+            # Deduct amount from sender's account
+            if sender.balance < amount:
+                raise ValidationError("Insufficient funds")
+            sender.balance -= amount
+            sender.save()
+
+            # Add amount to receiver's account
+            receiver.balance += amount
+            receiver.save()
+
+    except ValidationError as e:
+        print("Transaction failed:", e)
 
 
 
@@ -200,7 +229,12 @@ q = Question.objects.filter(criterion1 and criterion2) ----- way-2
 from django.db.models import Q
 User.objects.filter(Q(income__gte=5000) | Q(income__isnull=True)) ----- way-1
 User.objects.filter(Q(income__gte=5000) or Q(income__isnull=True)) ----- way-2
+# ---------------- NOT (~) --------------------------  
+criterion1 = Q(question__contains="software")
+criterion2 = Q(question__contains="java")
 
+# Using the & operator with negation
+q = Question.objects.filter(~criterion1 & ~criterion2)
 
 # ------------------------------------------------------------------------------------
 # -------------------------- Methods that do not return QuerySets --------------------
@@ -431,3 +465,167 @@ book.publisher.name
 
 publisher = Publisher.objects.prefetch_related('book_set').get(id=1) # Using Reverse ForeignKey
 books = publisher.book_set.all()
+
+
+# ------------------- .annotate() ---------------------------
+# Counting Related Items
+from django.db.models import Count
+
+# Annotate each author with a count of their books
+authors = Author.objects.annotate(book_count=Count('book'))
+
+for author in authors:
+    print(f"{author.name} has written {author.book_count} books.")
+
+# Summing Values
+from django.db.models import Sum
+
+# Annotate each author with the total price of their books
+authors = Author.objects.annotate(total_sales=Sum('book__price'))
+
+for author in authors:
+    print(f"{author.name} has total sales of ${author.total_sales}.")
+
+# Averaging Values
+from django.db.models import Avg
+
+# Annotate each author with the average rating of their books
+authors = Author.objects.annotate(average_rating=Avg('book__rating'))
+
+for author in authors:
+    print(f"{author.name} has an average book rating of {author.average_rating}.")
+
+
+# Using Multiple Annotations
+authors = Author.objects.annotate(
+    book_count=Count('book'),
+    total_sales=Sum('book__price')
+)
+
+for author in authors:
+    print(f"{author.name} has written {author.book_count} books with total sales of ${author.total_sales}.")
+
+
+# Conditional Annotations with Case and When
+from django.db.models import Case, When, IntegerField
+
+# Count only books with a rating of 5
+authors = Author.objects.annotate(
+    high_rated_books=Count(Case(
+        When(book__rating=5, then=1),
+        output_field=IntegerField()
+    ))
+)
+
+for author in authors:
+    print(f"{author.name} has {author.high_rated_books} highly-rated books.")
+
+# Aggregation with Filters
+from django.db.models import Sum
+
+# Annotate each author with the total price of books published after 2020
+authors = Author.objects.annotate(
+    recent_books_total=Sum('book__price', filter=models.Q(book__published_year__gt=2020))
+)
+
+for author in authors:
+    print(f"{author.name} has recent books worth ${author.recent_books_total}.")
+
+# Grouping Data by Field
+from django.db.models import Max
+
+# Annotate each author with the highest rating of their books
+authors = Author.objects.annotate(highest_rating=Max('book__rating'))
+
+for author in authors:
+    print(f"{author.name}'s highest-rated book has a rating of {author.highest_rating}.")
+
+
+# Combining .annotate() with .filter()
+from django.db.models import Count
+
+# First, we annotate, then filter on the annotated field
+authors = Author.objects.annotate(book_count=Count('book')).filter(book_count__gt=5)
+
+for author in authors:
+    print(f"{author.name} has written {author.book_count} books.")
+
+# Using .annotate() with Mathematical Operations
+from django.db.models import Count, Sum, F, FloatField
+
+# Annotate with both total sales and book count, then calculate average price
+authors = Author.objects.annotate(
+    total_sales=Sum('book__price'),
+    book_count=Count('book'),
+    avg_price=F('total_sales') / F('book_count')
+)
+
+for author in authors:
+    print(f"{author.name} has an average book price of ${author.avg_price:.2f}.")
+
+# Conditional Annotation with Boolean Flags
+from django.db.models import Case, When, BooleanField
+
+# Annotate each author with a boolean field indicating if they have a book over $50
+authors = Author.objects.annotate(
+    has_expensive_book=Case(
+        When(book__price__gt=50, then=True),
+        default=False,
+        output_field=BooleanField()
+    )
+)
+
+for author in authors:
+    print(f"{author.name} has an expensive book: {author.has_expensive_book}")
+
+
+
+# ------------------- OuterRef and Subquery ---------------------------
+
+from django.db.models import OuterRef, Subquery
+from django.db.models import Max
+
+# Subquery to get the latest published date for each author
+latest_book_date = Book.objects.filter(author=OuterRef('pk')).order_by('-published_date').values('published_date')[:1]
+
+# Annotate each Author with the date of their most recent book
+authors = Author.objects.annotate(latest_book_date=Subquery(latest_book_date))
+
+for author in authors:
+    print(author.name, author.latest_book_date)
+
+# ------------------- F Expression ---------------------------
+from django.db.models import ExpressionWrapper, DecimalField
+
+# Create a new field with a computed total cost as 'price * quantity'
+Item.objects.annotate(
+    total_cost=ExpressionWrapper(
+        F('price') * F('quantity'),
+        output_field=DecimalField()
+    )
+)
+
+
+from django.db.models import Case, When, Value, IntegerField
+
+# Annotate items with a flag based on whether quantity is greater than 10
+Item.objects.annotate(
+    is_in_stock=Case(
+        When(quantity__gt=10, then=Value(1)),
+        default=Value(0),
+        output_field=IntegerField()
+    )
+)
+# Get items where price is greater than cost
+Item.objects.filter(price__gt=F('cost'))
+
+# Get items where quantity is equal to items_sold
+Item.objects.filter(quantity=F('items_sold'))
+# Subtract 5 from the 'price' field
+Item.objects.update(price=F('price') - 5)
+
+# Multiply 'discount' by 0.1
+Item.objects.update(discount=F('discount') * 0.1)
+
+# Divide 'total' by 2
+Item.objects.update(total=F('total') / 2)
